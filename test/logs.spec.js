@@ -33,7 +33,7 @@ describe("Logger", function() {
     chai.request(app)
       .get('/')
       .end((err, res) => {
-        const out = console.log.getCall(0).args[0].split(',');
+        const out = console.log.getCall(0).args[0].split(', ');
         expect(out[0]).to.contain('node-superagent');
         done();
     })
@@ -43,7 +43,7 @@ describe("Logger", function() {
   chai.request(app)
     .get('/')
     .end((err, res) => {
-      const out = console.log.getCall(0).args[0].split(',');
+      const out = console.log.getCall(0).args[0].split(', ');
       expect(moment(out[1], moment.ISO_8601).isValid()).to.equal(true);
       done();
     })
@@ -53,7 +53,7 @@ describe("Logger", function() {
   chai.request(app)
     .get('/')
     .end((err, res) => {
-      const out = console.log.getCall(0).args[0].split(',');
+      const out = console.log.getCall(0).args[0].split(', ');
       expect(out[2]).to.equal('GET');
       done();
     })
@@ -63,7 +63,7 @@ describe("Logger", function() {
   chai.request(app)
     .get('/')
     .end((err, res) => {
-      const out = console.log.getCall(0).args[0].split(',');
+      const out = console.log.getCall(0).args[0].split(', ');
       expect(out[3]).to.equal('/');
       done();
     })
@@ -73,7 +73,7 @@ describe("Logger", function() {
   chai.request(app)
     .get('/')
     .end((err, res) => {
-      const out = console.log.getCall(0).args[0].split(',');
+      const out = console.log.getCall(0).args[0].split(', ');
       expect(out[4]).to.equal('HTTP/1.1');
       done();
     })
