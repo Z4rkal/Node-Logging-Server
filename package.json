@@ -1,13 +1,13 @@
 {
   "name": "log-all-the-things",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.1",
+  "description": "A simple express server logs activity to a log file",
   "main": "index.js",
   "scripts": {
     "test": "mocha test --exit",
     "start": "node server/index.js"
   },
-  "author": "",
+  "author": "Olivia Reed",
   "license": "ISC",
   "dependencies": {
     "express": "^4.15.2"

@@ -2,16 +2,49 @@ const express = require('express');
 const fs = require('fs');
 const app = express();
 
+//Variables for making Now deploys work through brute force
+var nowCompat = 1; //If this isn't set to 0 then we'll avoid accessing the file system
+var nowLog = ''; //Now deploys are read only so we'll use a string as a fake log file
+
+//Function to initialize the logs if they don't exist
+function initializeLogs() {
+    var errCheck = 0;
+    var fStream = fs.createWriteStream('server/log.csv', { flags: 'ax+' })
+    fStream.on('error', (err) => {
+        errCheck = 1;
+        fStream.close();
+    });
+    fStream.on('close', () => {
+        if (errCheck == 0) console.log('log.csv not found, creating it');
+    });
+    fStream.write('Agent,Time,Method,Resource,Version,Status\n')
+    if (errCheck == 0) fStream.close();
+}
+
+if (nowCompat == 0) initializeLogs();
+else nowLog = 'Agent,Time,Method,Resource,Version,Status\n';
+
 //Function to clear logs, disabled aside from while testing
 function clearLogs() {
-    fs.createWriteStream('server/log.csv',{ flags: 'w'}).write('Agent,Time,Method,Resource,Version,Status\n');
+    fs.createWriteStream('server/log.csv', { flags: 'w' }).write('Agent,Time,Method,Resource,Version,Status\n');
 }
 
 //clearLogs();
 
 //This function is placeholder in case I decide to implement log rotation
 function logToFile(logs) {
-    fs.createWriteStream('server/log.csv', { flags: 'a' }).write(toLog);
+    if (nowCompat == 0) fs.createWriteStream('server/log.csv', { flags: 'a' }).write(logs);
+    else {
+        nowLog += logs;
+        var nowLogLines = nowLog.match(/[^\n]+/g);
+        //Sets a cap on the amount of lines the fake log file can have on the Now deploy
+        if(nowLogLines.length > 20) {
+            nowLog = '';
+            nowLogLines.forEach((element,index) => {
+                if(index != 1) {nowLog += `${element}\n`;}
+            });
+        }
+    }
 }
 
 //Function for formatting log inputs, only gets called for the user-agent but should really be called for everything just to be safe
@@ -37,8 +70,8 @@ function formatLogs(logs) {
     logs.forEach((element) => {
         element = element.match(/[^\, ][^\,]*/g); //Splits up the current log line by matching between ', ' and ','
         //And then adds an object containing the line to the JSON we're constructing
-        logJSON += 
-    `{
+        logJSON +=
+            `{
         "${labels[0]}": "${element[0]}",
         "${labels[1]}": "${element[1]}",
         "${labels[2]}": "${element[2]}",
@@ -47,7 +80,7 @@ function formatLogs(logs) {
         "${labels[5]}": "${element[5]}"
     },`
     });
-    logJSON = logJSON.slice(0,logJSON.length-1); //Removes the extra comma from the last object
+    logJSON = logJSON.slice(0, logJSON.length - 1); //Removes the extra comma from the last object
     //And then caps off the JSON string with a closing bracket
     logJSON += `
 ]`;
@@ -77,16 +110,23 @@ app.get('/', (req, res) => {
 //Route for the exposed endpoint that returns the log file as a JSON
 app.get('/logs', (req, res) => {
     //First we read the log file
-    fs.readFile('server/log.csv', 'utf8', function (err, data) {
-        if (err) throw err;
-        data = formatLogs(data); //We need to use formatLogs to turn it into a JSON string
-        data = JSON.parse(data); //Then we turn it into a JSON object with JSON.parse
-        res.json(data); //Finally we respond to the GET request with our new JSON object
-    });
+    if (nowCompat == 0) {
+        fs.readFile('server/log.csv', 'utf8', function (err, data) {
+            if (err) throw err;
+            data = formatLogs(data); //We need to use formatLogs to turn it into a JSON string
+            data = JSON.parse(data); //Then we turn it into a JSON object with JSON.parse
+            res.json(data); //Finally we respond to the GET request with our new JSON object
+        });
+    }
+    else {
+        var data = formatLogs(nowLog);
+        data = JSON.parse(data);
+        res.json(data);
+    }
 });
 
 //Any other route 404's
-app.get('*',(req,res) => {
+app.get('*', (req, res) => {
     res.status('404').send('404: Resource not found');
 });
 
